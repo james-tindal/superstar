@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>SNAP</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/snap.svg/0.5.1/snap.svg-min.js"></script>
+	<style>
+		svg {
+			position:fixed;
+			top:50%;
+			left:50%;
+			height:200%;
+			width:200%;
+			overflow: visible;
+		}
+		svg .yellow {
+			fill: #EEF21E;
+			stroke: #AD760A;
+			stroke-width: 0.6;
+		}
+		svg .nofill {
+			fill-opacity: 0;
+			stroke: black;
+		}
+		@keyframes spin { 100% { transform:rotate(360deg) } }
+		.spinner { animation:spin 10s linear infinite; transform-origin: 0 0 }
+	</style>
+</head>
+<body>
+<script>
+
+
+// origin is 0,0, which is centered on screen
+const svg = Snap().addClass('spinner')
+const [cos, sin, Pi] = [Snap.cos, Snap.sin, Math.PI]
+
+
+// ets = equilateral triangle small
+// etsr = ets radius
+const etsr = 20
+function EquiTriangle(origin = {x: 0, y: 0}, radius = etsr) {
+	// construct an equilateral triangle
+	const o = origin, r = radius
+	const coords =
+	[ o.x+r*sin(0),   o.y-r*cos(0)
+	, o.x+r*sin(120), o.y-r*cos(120)
+	, o.x+r*sin(240), o.y-r*cos(240)
+	]
+
+	return svg.polygon(coords).addClass('yellow')
+}
+
+const apo = r => r / 2
+const height = r => apo(r) * 3
+
+svg.circle(0,0,58).addClass('yellow')
+EquiTriangle({x:0, y:0}, 75).transform(`scale(1, -1)`)
+svg.circle(0,0,39).addClass('yellow')
+
+// Central small triangle
+EquiTriangle()
+
+// Rotational symmetry of degree 3
+svg.group
+( EquiTriangle({x:0, y:height(etsr)})
+, EquiTriangle({x:0, y:1.9*height(etsr)}).transform(`scale(1, -1)`)
+, EquiTriangle({x:0, y:2.55*height(etsr)}, etsr/2).transform('rotate(30)')
+, EquiTriangle({x:0, y:2.55*height(etsr)}, etsr/2).transform('rotate(-30)')
+, svg.polygon('0 110, 16 1000, -16 1000').addClass('yellow').attr({strokeWidth: 0.3})
+, svg.polygon('0 100, 18 190, -18 190').addClass('yellow').transform('rotate(60)')
+)
+.clone().transform('rotate(120)')
+.clone().transform('rotate(-120)')
+
+
+///  Construct a triangle with all the points and measures on it.
+
+// const r = 150
+// EquiTriangle({radius: r}).addClass('nofill')
+// svg.circle(0, 0, r).addClass('nofill')
+// svg.circle(0, 0, 2) // origin
+// // midpoints
+// svg.circle(0, r/2, 2).attr({fill: 'green'})
+
+
+
+
+</script>
+</body>
+</html>
