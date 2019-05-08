@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>SNAP</title>
+	<title>Whacky Rainbow</title>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/snap.svg/0.5.1/snap.svg-min.js"></script>
 	<style>
 		body { background-color: #002b36 }
@@ -39,11 +39,11 @@ const [cos, sin, Pi] = [Snap.cos, Snap.sin, Math.PI]
 const colours = ['781c81', '404399', '488bc2', '6bb28c', '9fbe57', 'd2b33f', 'e77e31', 'd92120']
 
 // Change colour every degree
-;[...Array(360).keys()].forEach(d => 
+;[...Array(90).keys()].map(d => 
 	svg.polygon([
 		0, 0
-	, 1000*sin(d), 1000*cos(d)
-	, 1000*sin(d+1), 1000*cos(d+1)
+	, 1000*sin(d*4), 1000*cos(d*4)
+	, 1000*sin(d*4+4), 1000*cos(d*4+4)
 	]).attr({fill: '#' + colours[d % 8]})
 )
 

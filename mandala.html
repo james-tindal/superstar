@@ -23,36 +23,212 @@
 			fill-opacity: 0;
 			stroke: black;
 		}
+
+		svg .white {
+			stroke: black;
+			fill: white;
+		}
+
 		@keyframes spin { 100% { transform:rotate(360deg) } }
-		.spinner { animation:spin 10s linear infinite; transform-origin: 0 0 }
+		.spin { animation:spin 10s linear infinite; transform-origin: 0 0 }
 	</style>
 </head>
 <body>
 <script>
 
 
+function map(callback, iterator) {
+	const array = []
+	for (let item of iterator) {
+		array.push(callback(item))
+	}
+	return array
+}
+
+// const pathToNumbers = path => path.replace(/-?\d+(\.\d+)?/g, console.log.bind(console))
+const pathNumRegex = /-?\d+(\.\d+)?/g
+
+class _Shape { // abstract
+	altXY(fnX, fnY) {						// Careful with this. Might break something later because it's inherited
+		let changeX = true
+		this.d = this.d.replace(pathNumRegex, n => {
+			const result = changeX ? fnX(Number(n))
+				                     : fnY(Number(n))
+			changeX = !changeX
+			return result
+		})
+	}
+	rotate(angle, origin = [0, 0])   { throw new Error('You need to implement the rotate() method') }
+	translate(x, y) { throw new Error('You need to implement the translate() method') }
+	scale(x, y)     { throw new Error('You need to implement the scale() method') }
+}
+
+class _Path extends _Shape {
+	constructor(d) { super(); this.d = d }
+	rotate(angle, origin = [0,0]) {
+		this.altXY(x => x * cos(angle) - y * sin(angle) ,
+		           y => y * cos(angle) + y * sin(angle) )
+		return this
+	}
+	translate(x_, y_) {
+		this.altXY(x => x * x_, y => y * y_)
+		return this
+	}
+}
+
+function Path(d) { return new _Path(d) }
+
+Snap.plugin(function (Snap, Element, Paper, global, Fragment) {
+  Element.prototype.rotate = function (angle) {
+  	const m = Snap.matrix().rotate(angle)
+		if (this.matrix) 
+			this.transform(this.matrix.add(m))
+		else
+			this.transform(m)
+		return this
+  }
+
+  Element.prototype.cloneRotate = function (times) {
+  	const group = svg.group(this)
+  	for(let i = 1, prev = this; i < times; i++) {
+  		const next = prev.clone().rotate(360/times * i)
+  		group.add(next)
+  		prev = next
+  	}
+  	return group
+  }
+})
+
+
 // origin is 0,0, which is centered on screen
-const svg = Snap().addClass('spinner')
-const [cos, sin, Pi] = [Snap.cos, Snap.sin, Math.PI]
+const svg = Snap()//.addClass('spin')
+const [cos, sin] = [Snap.cos, Snap.sin]
 
 
-const colours = ['781c81', '404399', '488bc2', '6bb28c', '9fbe57', 'd2b33f', 'e77e31', 'd92120']
+// Generate a point at an angle and distance from origin. Point at distance angle.
+const pada =
+	(distance, angle, origin = [0,0]) =>
+		[origin[0] + distance * sin(angle), origin[1] + distance * cos(angle)]
 
-// Change colour every degree
-;[...Array(360).keys()].forEach(d => 
-	svg.polygon([
-		0, 0
-	, 1000*sin(d), 1000*cos(d)
-	, 1000*sin(d+1), 1000*cos(d+1)
-	]).attr({fill: '#' + colours[d % 8]})
-)
+const colours = ['#781c81', '#404399', '#488bc2', '#6bb28c', '#9fbe57', '#d2b33f', '#e77e31', '#d92120']
 
 
 
+// svg.path('M -4.5 -45 C -84 -159 84 -159 4.5 -45').attr({
+// 	stroke: 'black',
+// 	fill: colours[6],
+// 	strokeWidth: 2.5
+// })
+
+// svg.path(Path('M -4.5 -45 C -84 -159 84 -159 4.5 -45').rotate(100).d).attr({
+// 	stroke: 'black',
+// 	fill: colours[6],
+// 	strokeWidth: 2.5
+// })
 
 
+///// **  Fix pada to use origin, then use pada
+
+svg.circle(0, 0, 20).attr({
+	fill: colours[7],
+	stroke: 'black'
+})
+svg.polygon(Path('0 0, ' + pada(7, 360/16) + ', 0 17, ' + pada(7, -360/16)).translate(5, 5).d).attr({
+	fill: 'white',
+	stroke: 'black'
+})
+
+/*
+const bulb =
+svg.path('M -4.5 -45 C -84 -159 84 -159 4.5 -45').attr({
+	stroke: 'black',
+	fill: colours[6],
+	strokeWidth: 2.5
+})
+bulb.cloneRotate(4)
+
+bulb.clone().attr({fill: colours[1]}).cloneRotate(4).rotate(360/8)
+
+// Bulb decorations
+svg.group(
+	svg.circle(0, 136, 5),
+	svg.circle( 12, 133, 3.8),
+	svg.circle(-12, 133, 3.8),
+
+	svg.circle( 20, 127, 2.5),
+	svg.circle(-20, 127, 2.5),
+
+	svg.circle( 24.8, 120, 2.5),
+	svg.circle(-24.8, 120, 2.5),
+
+	svg.circle( 28.2, 112, 2.4),
+	svg.circle(-28.2, 112, 2.4),
+
+	svg.circle( 29.5, 103.5, 2.4),
+	svg.circle(-29.5, 103.5, 2.4),
+
+	svg.circle( 29.3, 95, 2.3),
+	svg.circle(-29.3, 95, 2.3),
+
+	svg.circle( 27.9, 86.5, 2.3),
+	svg.circle(-27.9, 86.5, 2.3),
+
+	svg.circle( 25.5, 78, 2.2),
+	svg.circle(-25.5, 78, 2.2),
+
+	svg.circle( 22.3, 70, 2.2),
+	svg.circle(-22.3, 70, 2.2),
+
+	svg.circle( 18.6, 62.5, 2.1),
+	svg.circle(-18.6, 62.5, 2.1),
+
+
+).addClass('white').cloneRotate(8)
+
+	svg.path('M0 332.5 C 10.5 210.5 40 136 40 59 C 40 -18 -50 -18 -50 59 C -50 136 -23.5 209.5 -13.5 332.5')
+	.transform('translate(0 -87); scale(0.12 0.12)').addClass('white')
+
+
+
+
+svg.polygon([...Array(48).keys()].flatMap(n => [pada(50, 360/48*n), pada(57, 360/48*n + 360/48/2)]))
+.attr({
+	stroke: 'black',
+	fill: colours[5]
+})
+svg.circle(0, 58.2, 2).attr({
+	stroke: 'black',
+	fill: colours[5]
+})
+.cloneRotate(48)
+.rotate(360/48/2)
+
+svg.rect(-3.5, 20, 9, 27, 9).attr({
+	stroke: 'black',
+	fill: colours[0]
+}).cloneRotate(16).rotate(360/32)
+
+svg
+.circle(0, 0, 25).attr({
+	fill: 'white',
+	stroke: 'black'
+})
+svg.circle(0, 0, 22).attr({
+	fill: 'white',
+	stroke: 'black'
+})
+svg.circle(0, 0, 20).attr({
+	fill: colours[7],
+	stroke: 'black'
+})
+svg.polygon('0 0', pada(7, 360/16), '0 17', pada(7, -360/16)).attr({
+	fill: 'white',
+	stroke: 'black'
+})
+.cloneRotate(8)
+*/
 
 
 </script>
 </body>
-</html>
+</html>	
