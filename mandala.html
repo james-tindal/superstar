@@ -39,44 +39,89 @@
 
 function map(callback, iterator) {
 	const array = []
-	for (let item of iterator) {
+	for (let item of iterator)
 		array.push(callback(item))
-	}
 	return array
 }
+
+function* gmap(callback, iterator) {
+	for (let item of iterator)
+		yield callback(item)
+}
+
+function* flatten() {
+	for (let item of iterator)
+		for (let subItem of item)
+			yield subItem
+}
+
+function* flatMap(callback, iterator) {
+	for (let item of flatten(gmap(callback,iterator)))
+		yield item
+}
+
+// Make pairs from iterator
+function* makePairs(iterator) {
+	let pair = []
+	for (let item of iterator)
+		if (pair.length < 2)
+			pair.push(item)
+		else {
+			yield pair
+			pair = [item]
+		}
+}
+
+// Make pairs from array
+function mpa(array) {
+	const result = []
+	let pair = []
+	array.forEach(el => {
+		if (pair.length < 2)
+			pair.push(el)
+		else {
+			result.push(pair)
+			pair = [el]
+		}
+	})
+	return result
+}
+
 
 // const pathToNumbers = path => path.replace(/-?\d+(\.\d+)?/g, console.log.bind(console))
 const pathNumRegex = /-?\d+(\.\d+)?/g
 
-class _Shape { // abstract
-	altXY(fnX, fnY) {						// Careful with this. Might break something later because it's inherited
+
+function Path(d) { 
+class Shape {
+	updateXY(callback) {
 		let changeX = true
-		this.d = this.d.replace(pathNumRegex, n => {
-			const result = changeX ? fnX(Number(n))
-				                     : fnY(Number(n))
-			changeX = !changeX
-			return result
-		})
+		// this.d = this.d.matchAll(pathNumRegex, n => {
+		// 	const result = changeX ? fnX(Number(n))
+		// 		                     : fnY(Number(n))
+		// 	changeX = !changeX
+		// 	return result
+		// })
+		makePairs(this.d.matchAll(pathNumRegex))
 	}
-	rotate(angle, origin = [0, 0])   { throw new Error('You need to implement the rotate() method') }
-	translate(x, y) { throw new Error('You need to implement the translate() method') }
-	scale(x, y)     { throw new Error('You need to implement the scale() method') }
+	rotate(angle, origin = [0, 0]) { throw new Error('You need to implement the rotate() method') }
+	translate(x, y)                { throw new Error('You need to implement the translate() method') }
+	scale(x, y)                    { throw new Error('You need to implement the scale() method') }
 }
 
-class _Path extends _Shape {
+class Path extends Shape {
 	constructor(d) { super(); this.d = d }
 	rotate(angle, origin = [0,0]) {
-		this.altXY(x => x * cos(angle) - y * sin(angle) ,
-		           y => y * cos(angle) + y * sin(angle) )
+		this.updateXY((x, y) => [ x * cos(angle) - y * sin(angle)
+		           							, y * cos(angle) + y * sin(angle) ])
 		return this
 	}
 	translate(x_, y_) {
-		this.altXY(x => x * x_, y => y * y_)
+		this.updateXY((x, y) => [ x * x_, y * y_ ])
 		return this
 	}
 }
-
-function Path(d) { return new _Path(d) }
+return new Path(d) }
 
 Snap.plugin(function (Snap, Element, Paper, global, Fragment) {
   Element.prototype.rotate = function (angle) {
