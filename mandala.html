@@ -44,7 +44,7 @@ function map(callback, iterator) {
 	return array
 }
 
-function* gmap(callback, iterator) {
+function* imap(callback, iterator) {
 	for (let item of iterator)
 		yield callback(item)
 }
@@ -56,7 +56,7 @@ function* flatten() {
 }
 
 function* flatMap(callback, iterator) {
-	for (let item of flatten(gmap(callback,iterator)))
+	for (let item of flatten(imap(callback,iterator)))
 		yield item
 }
 
@@ -70,39 +70,33 @@ function* makePairs(iterator) {
 			yield pair
 			pair = [item]
 		}
+	if (pair.length == 2) yield pair
 }
 
-// Make pairs from array
-function mpa(array) {
-	const result = []
-	let pair = []
-	array.forEach(el => {
-		if (pair.length < 2)
-			pair.push(el)
-		else {
-			result.push(pair)
-			pair = [el]
-		}
-	})
-	return result
+function* splitPairs(iterator) {
+	for (let item of iterator) {
+		yield item[0]
+		yield item[1]
+	}
 }
 
+const prop = propName => obj => obj[propName]
 
-// const pathToNumbers = path => path.replace(/-?\d+(\.\d+)?/g, console.log.bind(console))
+
+// select numbers in a svg path
 const pathNumRegex = /-?\d+(\.\d+)?/g
 
 
-function Path(d) { 
+// I want updateXY to replace pairs of numbers in a path via a callback
+// A version of .replace() which works on pairs
+
+const log = (x, ...xs) => {console.log(x, ...xs); return x}
+
+function Path(...args) { 
 class Shape {
 	updateXY(callback) {
-		let changeX = true
-		// this.d = this.d.matchAll(pathNumRegex, n => {
-		// 	const result = changeX ? fnX(Number(n))
-		// 		                     : fnY(Number(n))
-		// 	changeX = !changeX
-		// 	return result
-		// })
-		makePairs(this.d.matchAll(pathNumRegex))
+		const newCoordinates = splitPairs(imap(pair => callback(...pair), makePairs(imap( item => Number(item[0]), this.d.matchAll(pathNumRegex)))))
+		this.d = this.d.replace(pathNumRegex, () => newCoordinates.next().value)
 	}
 	rotate(angle, origin = [0, 0]) { throw new Error('You need to implement the rotate() method') }
 	translate(x, y)                { throw new Error('You need to implement the translate() method') }
@@ -110,18 +104,22 @@ class Shape {
 }
 
 class Path extends Shape {
-	constructor(d) { super(); this.d = d }
+	constructor() { super(); this.d = args.join() }
 	rotate(angle, origin = [0,0]) {
 		this.updateXY((x, y) => [ x * cos(angle) - y * sin(angle)
-		           							, y * cos(angle) + y * sin(angle) ])
+		           							, x * sin(angle) + y * cos(angle) ])
 		return this
 	}
 	translate(x_, y_) {
+		this.updateXY((x, y) => [ x + x_, y + y_ ])
+		return this
+	}
+	scale(x_, y_) {
 		this.updateXY((x, y) => [ x * x_, y * y_ ])
 		return this
 	}
 }
-return new Path(d) }
+return new Path() }
 
 Snap.plugin(function (Snap, Element, Paper, global, Fragment) {
   Element.prototype.rotate = function (angle) {
@@ -178,7 +176,7 @@ svg.circle(0, 0, 20).attr({
 	fill: colours[7],
 	stroke: 'black'
 })
-svg.polygon(Path('0 0, ' + pada(7, 360/16) + ', 0 17, ' + pada(7, -360/16)).translate(5, 5).d).attr({
+svg.polygon(Path('0 0', pada(7, 360/16), '0 17', pada(7, -360/16)).rotate(45).d).attr({
 	fill: 'white',
 	stroke: 'black'
 })
